@@ -47,15 +47,16 @@ class Genzo_Turnstile extends Module
         }
 	}
 
-	public function install() {
-		if (!parent::install() OR
-            !$this->registerHook('actionFrontControllerSetMedia')
+        public function install() {
+                if (!parent::install() OR
+            !$this->registerHook('actionFrontControllerSetMedia') OR
+            !$this->registerHook('actionAdminControllerSetMedia')
         ) {
             return false;
         }
 
-		return true;
-	}
+                return true;
+        }
 
 
 	// Backoffice
@@ -224,6 +225,10 @@ class Genzo_Turnstile extends Module
         $this->validatePostValues();
     }
 
+    public function hookActionAdminControllerSetMedia() {
+        $this->validatePostValues();
+    }
+
     private function validatePostValues() {
 
         $turnstileActive = false;
@@ -313,6 +318,9 @@ class Genzo_Turnstile extends Module
             'AuthController' => [
                 'SubmitCreate' => 'CreateAccount',
                 'SubmitLogin' => 'Login',
+            ],
+            'AdminLoginController' => [
+                'submitLogin' => 'AdminLogin',
             ],
         ];
     }
