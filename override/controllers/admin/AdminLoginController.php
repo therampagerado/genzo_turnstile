@@ -20,7 +20,7 @@ class AdminLoginController extends AdminLoginControllerCore
             ]);
 
             $module = Module::getInstanceByName('genzo_turnstile');
-            $this->addJS($module->_path . 'views/js/genzo_turnstile.js');
+            $this->addJS($module->getPathUri() . 'views/js/genzo_turnstile.js');
         }
     }
 
