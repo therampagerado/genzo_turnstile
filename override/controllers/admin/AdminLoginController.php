@@ -35,8 +35,34 @@ class AdminLoginController extends AdminLoginControllerCore
     public function processLogin()
     {
         if ($this->shouldCheckTurnstile()) {
-            if (!$this->validateFormSubmitToken()) {
-                $this->errors[] = $this->l('Your captcha was wrong. Please try again.');
+            $resp = $this->validateFormSubmitToken();
+            if ($resp === false || empty($resp['success'])) {
+                $code = isset($resp['error-codes'][0]) ? $resp['error-codes'][0] : '';
+                if ($code === 'invalid-input-secret' || $code === 'missing-input-secret') {
+                    $this->errors[] = Tools::displayError(
+                        Translate::getModuleTranslation(
+                            'genzo_turnstile',
+                            'The Turnstile secret key is invalid. Please contact the site administrator.',
+                            'configure'
+                        )
+                    );
+                } elseif ($code === 'cloudflare-no-contact') {
+                    $this->errors[] = Tools::displayError(
+                        Translate::getModuleTranslation(
+                            'genzo_turnstile',
+                            'Unable to connect to Cloudflare in order to verify the captcha. Please check your server settings or contact your hosting provider.',
+                            'configure'
+                        )
+                    );
+                } else {
+                    $this->errors[] = Tools::displayError(
+                        Translate::getModuleTranslation(
+                            'genzo_turnstile',
+                            'Your captcha was wrong. Please try again.',
+                            'configure'
+                        )
+                    );
+                }
             }
         }
 
@@ -49,8 +75,34 @@ class AdminLoginController extends AdminLoginControllerCore
     public function processForgot()
     {
         if ($this->shouldCheckTurnstile()) {
-            if (!$this->validateFormSubmitToken()) {
-                $this->errors[] = $this->l('Your captcha was wrong. Please try again.');
+            $resp = $this->validateFormSubmitToken();
+            if ($resp === false || empty($resp['success'])) {
+                $code = isset($resp['error-codes'][0]) ? $resp['error-codes'][0] : '';
+                if ($code === 'invalid-input-secret' || $code === 'missing-input-secret') {
+                    $this->errors[] = Tools::displayError(
+                        Translate::getModuleTranslation(
+                            'genzo_turnstile',
+                            'The Turnstile secret key is invalid. Please contact the site administrator.',
+                            'configure'
+                        )
+                    );
+                } elseif ($code === 'cloudflare-no-contact') {
+                    $this->errors[] = Tools::displayError(
+                        Translate::getModuleTranslation(
+                            'genzo_turnstile',
+                            'Unable to connect to Cloudflare in order to verify the captcha. Please check your server settings or contact your hosting provider.',
+                            'configure'
+                        )
+                    );
+                } else {
+                    $this->errors[] = Tools::displayError(
+                        Translate::getModuleTranslation(
+                            'genzo_turnstile',
+                            'Your captcha was wrong. Please try again.',
+                            'configure'
+                        )
+                    );
+                }
             }
         }
 
@@ -70,6 +122,7 @@ class AdminLoginController extends AdminLoginControllerCore
         $data = [
             'secret'   => Configuration::get('GENZO_TURNSTILE_SECRET_KEY'),
             'response' => Tools::getValue('cf-turnstile-response'),
+            'remoteip' => Tools::getRemoteAddr(),
         ];
 
         $payload = http_build_query($data);
@@ -98,8 +151,16 @@ class AdminLoginController extends AdminLoginControllerCore
             $response = Tools::file_get_contents($url, false, $context);
         }
 
+        if ($response === false) {
+            return ['success' => false, 'error-codes' => ['cloudflare-no-contact']];
+        }
+
         $result = json_decode($response, true);
 
-        return isset($result['success']) && $result['success'];
+        if (!is_array($result)) {
+            return ['success' => false, 'error-codes' => ['cloudflare-invalid-response']];
+        }
+
+        return $result;
     }
 }
