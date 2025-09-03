@@ -5,11 +5,14 @@
 
 class AdminLoginController extends AdminLoginControllerCore
 {
+    /**
+     * Add Turnstile assets on the admin login page
+     */
     public function setMedia()
     {
         parent::setMedia();
 
-        if ($this->isTurnstileActive()) {
+        if ($this->shouldCheckTurnstile()) {
             Media::addJsDef([
                 'turnstileSiteKey' => Configuration::get('GENZO_TURNSTILE_SITE_KEY'),
                 'submitsToCheck'   => [
@@ -26,22 +29,38 @@ class AdminLoginController extends AdminLoginControllerCore
         }
     }
 
-    public function postProcess()
+    /**
+     * Validate the Turnstile response during login submissions
+     */
+    public function processLogin()
     {
-        if ($this->isTurnstileActive() && (Tools::isSubmit('submitLogin') || Tools::isSubmit('submitForgot'))) {
+        if ($this->shouldCheckTurnstile()) {
             if (!$this->validateFormSubmitToken()) {
-                $this->errors[] = $this->l('Captcha Validation failed');
-                return;
+                $this->errors[] = $this->l('Your captcha was wrong. Please try again.');
             }
         }
 
-        parent::postProcess();
+        return parent::processLogin();
     }
 
-    private function isTurnstileActive()
+    /**
+     * Validate the Turnstile response during password recovery submissions
+     */
+    public function processForgot()
     {
-        return Module::isInstalled('genzo_turnstile')
-            && Module::isEnabled('genzo_turnstile')
+        if ($this->shouldCheckTurnstile()) {
+            if (!$this->validateFormSubmitToken()) {
+                $this->errors[] = $this->l('Your captcha was wrong. Please try again.');
+            }
+        }
+
+        return parent::processForgot();
+    }
+
+    private function shouldCheckTurnstile()
+    {
+        return Module::isEnabled('genzo_turnstile')
+            && @filemtime(_PS_MODULE_DIR_.'genzo_turnstile/genzo_turnstile.php')
             && Configuration::get('GENZO_TURNSTILE_SITE_KEY')
             && Configuration::get('GENZO_TURNSTILE_SECRET_KEY');
     }
