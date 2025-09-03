@@ -23,7 +23,7 @@ class Genzo_Turnstile extends Module
 	function __construct() {
 		$this->name = 'genzo_turnstile';
 		$this->tab = 'front_office_features';
-		$this->version = '1.1.0';
+                $this->version = '1.2.0';
 		$this->author = 'Emanuel Schiendorfer';
 		$this->need_instance = 1;
 
@@ -48,8 +48,9 @@ class Genzo_Turnstile extends Module
 	}
 
 	public function install() {
-		if (!parent::install() OR
-            !$this->registerHook('actionFrontControllerSetMedia')
+                if (!parent::install() OR
+            !$this->registerHook('actionFrontControllerSetMedia') OR
+            !$this->registerHook('actionAdminControllerSetMedia')
         ) {
             return false;
         }
@@ -224,6 +225,10 @@ class Genzo_Turnstile extends Module
         $this->validatePostValues();
     }
 
+    public function hookActionAdminControllerSetMedia() {
+        $this->validatePostValues();
+    }
+
     private function validatePostValues() {
 
         $turnstileActive = false;
@@ -259,9 +264,15 @@ class Genzo_Turnstile extends Module
 
     private function checkIfControllerNeedsValidation() {
 
-        // Check if the customer is logged
-        if (!$this->turnstile_if_logged && $this->context->customer->isLogged()) {
-            return false;
+        // Check if the customer/employee is logged
+        if (!$this->turnstile_if_logged) {
+            if (isset($this->context->customer) && $this->context->customer->isLogged()) {
+                return false;
+            }
+
+            if (isset($this->context->employee) && method_exists($this->context->employee, 'isLoggedBack') && $this->context->employee->isLoggedBack()) {
+                return false;
+            }
         }
 
         // Get active submits (BO configuration)
@@ -313,6 +324,10 @@ class Genzo_Turnstile extends Module
             'AuthController' => [
                 'SubmitCreate' => 'CreateAccount',
                 'SubmitLogin' => 'Login',
+            ],
+            'AdminLoginController' => [
+                'submitLogin' => 'AdminLogin',
+                'submitForgot' => 'AdminForgot',
             ],
         ];
     }
