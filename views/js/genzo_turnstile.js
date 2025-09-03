@@ -16,7 +16,8 @@ function loadCloudflareFile() {
 
     var src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
 
-    if (document.querySelector('script[src="' + src + '"]') === null) {
+    var existing = document.querySelector('script[src="' + src + '"]');
+    if (existing === null) {
         var script = document.createElement('script');
         script.src = src;
         script.crossOrigin = 'anonymous';
@@ -27,8 +28,10 @@ function loadCloudflareFile() {
         }
 
         document.head.appendChild(script);
-    } else {
+    } else if (typeof turnstile !== 'undefined') {
         renderAutoloadValidations();
+    } else {
+        existing.addEventListener('load', renderAutoloadValidations);
     }
 
 
@@ -78,7 +81,7 @@ function renderTurnstileValidations(form, dataAction = '', elementAfterTurnstile
 
 function renderAutoloadValidations() {
     forms.forEach(function (formObj) {
-        if (formObj.autoload && turnstile) {
+        if (formObj.autoload && typeof turnstile !== 'undefined') {
             renderTurnstileValidations(formObj.htmlElement, formObj.submitName);
         }
     });
@@ -87,7 +90,7 @@ function renderAutoloadValidations() {
 document.addEventListener('input', function (event) {
     var form = event.target.closest('form');
     forms.forEach(function (formObj) {
-        if (turnstile && formObj.htmlElement===form) {
+        if (typeof turnstile !== 'undefined' && formObj.htmlElement===form) {
             renderTurnstileValidations(formObj.htmlElement, formObj.submitName);
         }
     });
