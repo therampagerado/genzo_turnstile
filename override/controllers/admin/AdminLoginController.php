@@ -53,15 +53,33 @@ class AdminLoginController extends AdminLoginControllerCore
             'response' => Tools::getValue('cf-turnstile-response'),
         ];
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, 'https://challenges.cloudflare.com/turnstile/v0/siteverify');
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+        $payload = http_build_query($data);
+        $url     = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
-        $result = json_decode(curl_exec($ch), true);
+        if (function_exists('curl_init')) {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+            $response = curl_exec($ch);
+            curl_close($ch);
+        } else {
+            $options = [
+                'http' => [
+                    'method'  => 'POST',
+                    'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                    'content' => $payload,
+                    'timeout' => 3,
+                ],
+            ];
+            $context  = stream_context_create($options);
+            $response = Tools::file_get_contents($url, false, $context);
+        }
+
+        $result = json_decode($response, true);
 
         return isset($result['success']) && $result['success'];
     }
